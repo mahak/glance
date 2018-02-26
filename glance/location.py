@@ -351,7 +351,7 @@ class StoreLocations(abc.MutableSequence):
                 raise NotImplementedError("slice with step")
             self.__delslice__(i.start, i.stop)
             return
-        location = None
+
         try:
             location = self.value[i]
         except Exception:
@@ -366,7 +366,7 @@ class StoreLocations(abc.MutableSequence):
     def __delslice__(self, i, j):
         i = 0 if i is None else max(i, 0)
         j = len(self) if j is None else max(j, 0)
-        locations = []
+
         try:
             locations = self.value[i:j]
         except Exception:

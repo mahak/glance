@@ -239,7 +239,6 @@ def do_reload(pid_file, server):
         msg = (_('Reload of %(serv)s not supported') % {'serv': server})
         sys.exit(msg)
 
-    pid = None
     if os.path.exists(pid_file):
         with open(pid_file, 'r') as pidfile:
             pid = int(pidfile.read().strip())
