@@ -2389,6 +2389,19 @@ def get_cached_images(context, node_reference_url):
         return cached_images
 
 
+def get_cached_nodes(context, image_id):
+    node_id = models.NodeReference.node_reference_id
+    with session_for_read() as session:
+        query = session.query(
+            models.NodeReference.node_reference_url).join(
+            models.CachedImages,
+            node_id == models.CachedImages.node_reference_id,
+            isouter=True).filter(
+            models.CachedImages.image_id == image_id)
+
+        return [url[0] for url in query.all()]
+
+
 @utils.no_4byte_params
 def delete_all_cached_images(context, node_reference_url):
     with session_for_write() as session:

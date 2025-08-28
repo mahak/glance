@@ -238,6 +238,9 @@ class ImageAPIPolicy(APIPolicyBase):
     def get_locations(self):
         self._enforce('fetch_image_location')
 
+    def list_cached_nodes(self):
+        self._enforce('list_cached_nodes')
+
     def add_image(self):
         try:
             self._enforce('add_image')

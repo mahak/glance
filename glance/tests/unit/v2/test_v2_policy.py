@@ -841,6 +841,15 @@ class TestCacheImageAPIPolicy(utils.BaseTestCase):
                                                       'cache_image',
                                                       mock.ANY)
 
+    def test_list_cached_nodes(self):
+        self.policy = policy.CacheImageAPIPolicy(
+            self.context, enforcer=self.enforcer,
+            policy_str='list_cached_nodes')
+        self.policy.manage_image_cache()
+        self.enforcer.enforce.assert_called_once_with(self.context,
+                                                      'list_cached_nodes',
+                                                      mock.ANY)
+
 
 class TestDiscoveryAPIPolicy(APIPolicyBase):
     def setUp(self):

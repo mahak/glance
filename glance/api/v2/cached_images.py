@@ -184,6 +184,36 @@ class CacheController(object):
 
         return False
 
+    def get_cached_nodes(self, req, image_id):
+        """
+        GET /cache/nodes/<IMAGE_ID> - Get all nodes where image is cached
+
+        Returns a list of node URLs where the specified image is cached.
+
+        :param req: The request object
+        :param image_id: The image ID to check for cached nodes
+        :returns: List of node URLs where the image is cached
+        :raises HTTPConflict: If centralized caching is not enabled
+        :raises HTTPNotFound: If the image does not exist
+        :raises HTTPForbidden: If policy enforcement fails
+        """
+        self._enforce(req, new_policy='list_cached_nodes')
+        if CONF.image_cache_driver != 'centralized_db':
+            msg = _("Centralized caching is not enabled")
+            LOG.warning(msg)
+            raise webob.exc.HTTPConflict(explanation=msg)
+
+        # Check if the image exists before proceeding
+        image_repo = self.gateway.get_repo(req.context)
+        try:
+            image_repo.get(image_id)
+        except exception.NotFound:
+            msg = _("Image %s not found.") % image_id
+            LOG.warning(msg)
+            raise webob.exc.HTTPNotFound(explanation=msg)
+
+        return self.cache.get_cached_nodes(image_id)
+
     def clear_cache(self, req):
         """
         DELETE /cache - Clear cache and queue

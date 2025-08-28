@@ -408,3 +408,57 @@ class TestCachedImagesNegative(test_utils.BaseTestCase):
         self.assertRaises(webob.exc.HTTPNotFound,
                           self.controller.queue_image_from_api,
                           req, image_id='non-existing-image-id')
+
+    def test_get_cached_nodes_success(self):
+        """Test successful cached nodes retrieval."""
+        self.config(image_cache_dir='fake_cache_directory')
+        self.config(image_cache_driver='centralized_db')
+        req = unit_test_utils.get_fake_request()
+
+        with mock.patch.object(notifier.ImageRepoProxy, 'get') as mock_get:
+            mock_get.return_value = FakeImage()
+            with mock.patch.object(self.controller.cache,
+                                   'get_cached_nodes') as mock_cache:
+                mock_cache.return_value = ['http://node1', 'http://node2']
+
+                result = self.controller.get_cached_nodes(req, UUID4)
+
+                self.assertEqual(['http://node1', 'http://node2'], result)
+                mock_get.assert_called_once_with(UUID4)
+                mock_cache.assert_called_once_with(UUID4)
+
+    def test_get_cached_nodes_centralized_cache_disabled(self):
+        """Test that 409 is returned when centralized caching is disabled."""
+        self.config(image_cache_dir='fake_cache_directory')
+        self.config(image_cache_driver='sqlite')
+        req = unit_test_utils.get_fake_request()
+
+        self.assertRaises(webob.exc.HTTPConflict,
+                          self.controller.get_cached_nodes,
+                          req, UUID4)
+
+    def test_get_cached_nodes_image_not_found(self):
+        """Test 404 for non-existent image."""
+        self.config(image_cache_dir='fake_cache_directory')
+        self.config(image_cache_driver='centralized_db')
+        req = unit_test_utils.get_fake_request()
+
+        with mock.patch.object(notifier.ImageRepoProxy, 'get') as mock_get:
+            from glance.common import exception
+            mock_get.side_effect = exception.NotFound()
+
+            self.assertRaises(webob.exc.HTTPNotFound,
+                              self.controller.get_cached_nodes,
+                              req, UUID4)
+            mock_get.assert_called_once_with(UUID4)
+
+    def test_get_cached_nodes_policy_forbidden(self):
+        """Test that 403 is returned when policy enforcement fails."""
+        self.config(image_cache_dir='fake_cache_directory')
+        self.config(image_cache_driver='centralized_db')
+        self.controller.policy.rules = {"list_cached_nodes": False}
+        req = unit_test_utils.get_fake_request()
+
+        self.assertRaises(webob.exc.HTTPForbidden,
+                          self.controller.get_cached_nodes,
+                          req, UUID4)

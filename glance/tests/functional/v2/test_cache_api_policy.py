@@ -175,6 +175,60 @@ class TestCacheImagesPolicy(functional.SynchronousAPIBase):
         response = self.api_get(path)
         self.assertEqual(403, response.status_code)
 
+    def test_list_cached_nodes(self):
+        self.start_server()
+        # Create image and cache it
+        image_id = self._create_upload_and_cache(cache_image=True)
+        # make sure you are able to get cached images
+        path = '/v2/cache/nodes/%s' % image_id
+        response = self.api_get(path)
+        self.assertEqual(200, response.status_code)
+        # Now disable list_cached_nodes to ensure you will get
+        # 403 Forbidden error
+        self.set_policy_rules({
+            'list_cached_nodes': '!'
+        })
+        response = self.api_get(path)
+        self.assertEqual(403, response.status_code)
+
+    def test_list_cached_nodes_default_policy(self):
+        """Test default policy for list_cached_nodes endpoint."""
+        self.start_server()
+        # Set up the default policy for list_cached_nodes
+        self.set_policy_rules({
+            'list_cached_nodes': 'role:admin',
+            'add_image': '',
+            'upload_image': '',
+            'manage_image_cache': 'role:admin'
+        })
+        # Create image and cache it
+        image_id = self._create_upload_and_cache(cache_image=True)
+        path = '/v2/cache/nodes/%s' % image_id
+
+        # Test with default headers (admin role) - should succeed
+        response = self.api_get(path)
+        self.assertEqual(200, response.status_code)
+
+        # Test with admin role explicitly - should succeed
+        headers = {'X-Roles': 'admin'}
+        response = self.api_get(path, headers=headers)
+        self.assertEqual(200, response.status_code)
+
+        # Test with reader role - should fail (403 Forbidden)
+        headers = {'X-Roles': 'reader'}
+        response = self.api_get(path, headers=headers)
+        self.assertEqual(403, response.status_code)
+
+        # Test with member role - should fail (403 Forbidden)
+        headers = {'X-Roles': 'member'}
+        response = self.api_get(path, headers=headers)
+        self.assertEqual(403, response.status_code)
+
+        # Test with no roles - should fail (403 Forbidden)
+        headers = {'X-Roles': ''}
+        response = self.api_get(path, headers=headers)
+        self.assertEqual(403, response.status_code)
+
     def test_delete_cached_image(self):
         self.start_server()
         # Create image and cache it

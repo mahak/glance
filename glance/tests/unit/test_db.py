@@ -338,6 +338,42 @@ class TestImageRepo(test_utils.BaseTestCase):
         self.assertEqual(4, self.db.get_hit_count(self.context,
                                                   UUID1, 'node_url_1'))
 
+    def test_get_cached_nodes(self):
+        """Test getting cached nodes with detailed verification."""
+        # Test UUID1 - should be cached on node_url_1
+        cached_nodes = self.db.get_cached_nodes(self.context, UUID1)
+        self.assertEqual(['node_url_1'], cached_nodes)
+        self.assertEqual(1, len(cached_nodes))
+        self.assertIn('node_url_1', cached_nodes)
+
+        # Test UUID2 - should NOT be cached anywhere
+        cached_nodes = self.db.get_cached_nodes(self.context, UUID2)
+        self.assertEqual([], cached_nodes)
+        self.assertEqual(0, len(cached_nodes))
+
+        # Test UUID3 - should be cached on node_url_1
+        cached_nodes = self.db.get_cached_nodes(self.context, UUID3)
+        self.assertEqual(['node_url_1'], cached_nodes)
+        self.assertEqual(1, len(cached_nodes))
+        self.assertIn('node_url_1', cached_nodes)
+
+        # Test non-existent image - should return empty list
+        non_existent_uuid = 'non-existent-uuid-12345'
+        cached_nodes = self.db.get_cached_nodes(self.context,
+                                                non_existent_uuid)
+        self.assertEqual([], cached_nodes)
+        self.assertEqual(0, len(cached_nodes))
+
+        # Verify that UUID1 and UUID3 are cached on the same node
+        uuid1_nodes = self.db.get_cached_nodes(self.context, UUID1)
+        uuid3_nodes = self.db.get_cached_nodes(self.context, UUID3)
+        self.assertEqual(uuid1_nodes, uuid3_nodes)
+
+        # Verify that UUID2 is not cached on any node that UUID1 is cached on
+        uuid2_nodes = self.db.get_cached_nodes(self.context, UUID2)
+        for node in uuid1_nodes:
+            self.assertNotIn(node, uuid2_nodes)
+
     def test_get(self):
         image = self.image_repo.get(UUID1)
         self.assertEqual(UUID1, image.image_id)
