@@ -19,9 +19,8 @@ driver is removed from glance.
 """
 from contextlib import contextmanager
 import sqlite3
-from time import sleep
+import time
 
-from eventlet import timeout
 from oslo_log import log as logging
 
 from glance.i18n import _LE
@@ -39,8 +38,8 @@ def dict_factory(cur, row):
 class SqliteConnection(sqlite3.Connection):
 
     """
-    SQLite DB Connection handler that plays well with eventlet,
-    slightly modified from Swift's similar code.
+    SQLite connection that retries on database-is-locked errors with a
+    bounded total wait, similar to Swift's SQLite helper.
     """
 
     def __init__(self, *args, **kwargs):
@@ -49,14 +48,18 @@ class SqliteConnection(sqlite3.Connection):
         sqlite3.Connection.__init__(self, *args, **kwargs)
 
     def _timeout(self, call):
-        with timeout.Timeout(self.timeout_seconds):
-            while True:
-                try:
-                    return call()
-                except sqlite3.OperationalError as e:
-                    if 'locked' not in str(e):
-                        raise
-                sleep(0.05)
+        deadline = time.monotonic() + self.timeout_seconds
+        while True:
+            if time.monotonic() >= deadline:
+                raise TimeoutError(
+                    'SQLite operation exceeded %.2f seconds' %
+                    self.timeout_seconds)
+            try:
+                return call()
+            except sqlite3.OperationalError as e:
+                if 'locked' not in str(e):
+                    raise
+            time.sleep(0.05)
 
     def execute(self, *args, **kwargs):
         return self._timeout(lambda: sqlite3.Connection.execute(
