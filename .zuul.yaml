@@ -339,7 +339,7 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - openstack-tox-functional-py310
+        - openstack-tox-functional-py311
         - openstack-tox-functional-py313
         - glance-ceph-thin-provisioning:
             voting: false
@@ -383,7 +383,7 @@
 
     gate:
       jobs:
-        - openstack-tox-functional-py310
+        - openstack-tox-functional-py311
         - openstack-tox-functional-py313
         - tempest-integrated-storage:
             irrelevant-files: *tempest-irrelevant-files
