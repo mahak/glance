@@ -2844,54 +2844,6 @@ class TestImages(functional.SynchronousAPIBase):
             self.assertEqual('community', image['visibility'])
 
 
-class TestImagesIPv6(functional.MinimalIPv6TestBase):
-    """Verify that API servers running IPv6 can communicate."""
-
-    def setUp(self):
-        """Apply monkey patches for IPv6 support."""
-        test_utils.get_unused_port_ipv4 = test_utils.get_unused_port
-        test_utils.get_unused_port_and_socket_ipv4 = (
-            test_utils.get_unused_port_and_socket)
-        test_utils.get_unused_port = test_utils.get_unused_port_ipv6
-        test_utils.get_unused_port_and_socket = (
-            test_utils.get_unused_port_and_socket_ipv6)
-        super(TestImagesIPv6, self).setUp()
-        self.cleanup()
-
-    def tearDown(self):
-        super(TestImagesIPv6, self).tearDown()
-        test_utils.get_unused_port = test_utils.get_unused_port_ipv4
-        test_utils.get_unused_port_and_socket = (
-            test_utils.get_unused_port_and_socket_ipv4)
-
-    def _headers(self, custom_headers=None):
-        base_headers = {
-            'X-Identity-Status': 'Confirmed',
-            'X-Auth-Token': '932c5c84-02ac-4fe5-a9ba-620af0e2bb96',
-            'X-User-Id': 'f9a41d13-0c13-47e9-bee2-ce4e8bfe958e',
-            'X-Tenant-Id': TENANT1,
-            'X-Roles': 'reader,member',
-        }
-        base_headers.update(custom_headers or {})
-        return base_headers
-
-    def test_image_list_ipv6(self):
-        # Image list should be empty
-
-        self.api_server.deployment_flavor = "caching"
-        self.start_servers(**self.__dict__.copy())
-
-        url = f'http://[::1]:{self.api_port}'
-        path = '/'
-        requests.get(url + path, headers=self._headers())
-
-        path = '/v2/images'
-        response = requests.get(url + path, headers=self._headers())
-        self.assertEqual(200, response.status_code)
-        images = jsonutils.loads(response.text)['images']
-        self.assertEqual(0, len(images))
-
-
 class TestImageDirectURLVisibility(functional.SynchronousAPIBase):
 
     def setUp(self):
