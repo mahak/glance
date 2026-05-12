@@ -248,6 +248,12 @@ class ImageCache(object):
         """
         return self.driver.get_cached_images()
 
+    def get_cached_nodes(self, image_id):
+        """
+        Returns a list of nodes where image is cached.
+        """
+        return self.driver.get_cached_nodes(image_id)
+
     def delete_all_cached_images(self):
         """
         Removes all cached image files and any attributes about the images

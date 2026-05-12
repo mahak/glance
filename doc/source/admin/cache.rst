@@ -136,6 +136,15 @@ following methods:
 
    $ glance cache-list
 
+To find the nodes where a specific image is cached:
+
+* You can call ``GET /cache/nodes/<IMAGE_ID>`` to return a list of node
+  reference URLs where the specified image is cached.
+
+  This endpoint is admin-only by default (policy rule:
+  ``list_cached_nodes``), because node reference URLs may expose backend
+  worker endpoints.
+
 To delete images which are already cached or queued for caching use one of
 the following methods:
 

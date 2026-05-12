@@ -2193,6 +2193,24 @@ def get_hit_count(context, image_id, node_reference_url):
 
 
 @log_call
+def get_cached_nodes(context, image_id):
+    global DATA
+    all_images = DATA['cached_images']
+    node_references = DATA['node_reference']
+    cached_nodes = []
+    for image in all_images.values():
+        if image['image_id'] != image_id:
+            continue
+        for node in node_references:
+            node_reference = node_references[node]
+            if image['node_reference_id'] == \
+                    node_reference['node_reference_id']:
+                cached_nodes.append(node_reference['node_reference_url'])
+
+    return cached_nodes
+
+
+@log_call
 def get_cached_images(context, node_reference_url):
     global DATA
     node_reference = node_reference_get_by_url(context, node_reference_url)

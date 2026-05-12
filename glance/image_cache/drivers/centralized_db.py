@@ -102,6 +102,14 @@ class Driver(base.Driver):
         return self.db_api.get_cached_images(
             self.context, node_reference_url)
 
+    def get_cached_nodes(self, image_id):
+        """
+        Returns a list of records about nodes where image is cached.
+        """
+        LOG.debug("Gathering cached image entries across nodes.")
+        return self.db_api.get_cached_nodes(
+            self.context, image_id)
+
     def is_cached(self, image_id):
         """
         Returns True if the image with the supplied ID has its image

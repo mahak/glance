@@ -432,6 +432,22 @@ class TestPolicyEnforcerNoFile(base.IsolatedUnitTest):
         admin_context = glance.context.RequestContext(roles=['admin'])
         enforcer.enforce(admin_context, 'manage_image_cache', {})
 
+    def test_list_cached_nodes_default_admin_only(self):
+        self.config(enforce_new_defaults=True, group='oslo_policy')
+        enforcer = glance.api.policy.Enforcer(
+            suppress_deprecation_warnings=True)
+
+        reader_context = glance.context.RequestContext(roles=['reader'])
+        target = {'project_id': reader_context.project_id}
+        self.assertRaises(exception.Forbidden,
+                          enforcer.enforce,
+                          reader_context,
+                          'list_cached_nodes',
+                          target)
+
+        admin_context = glance.context.RequestContext(roles=['admin'])
+        enforcer.enforce(admin_context, 'list_cached_nodes', target)
+
 
 class TestContextPolicyEnforcer(base.IsolatedUnitTest):
 

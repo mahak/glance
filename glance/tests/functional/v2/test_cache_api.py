@@ -14,6 +14,7 @@
 #    under the License.
 import time
 from unittest import mock
+import uuid
 
 import oslo_policy.policy
 
@@ -33,10 +34,10 @@ class TestImageCache(functional.SynchronousAPIBase):
             oslo_policy.policy.Rules.from_dict(rules),
             overwrite=True)
 
-    def start_server(self, enable_cache=True):
+    def start_server(self, enable_cache=True, cache_driver='sqlite'):
         # NOTE(abhishekk): Once sqlite driver is removed, fix these tests
         # to work with centralized_db driver
-        self.config(image_cache_driver='sqlite')
+        self.config(image_cache_driver=cache_driver)
         with mock.patch.object(policy, 'Enforcer') as mock_enf:
             mock_enf.return_value = self.policy
             super(TestImageCache, self).start_server(enable_cache=enable_cache)
@@ -77,6 +78,13 @@ class TestImageCache(functional.SynchronousAPIBase):
 
     def list_cache(self, expected_code=200):
         path = '/v2/cache'
+        response = self.api_get(path)
+        self.assertEqual(expected_code, response.status_code)
+        if response.status_code == 200:
+            return response.json
+
+    def list_cached_nodes(self, image_id, expected_code=200):
+        path = '/v2/cache/nodes/%s' % image_id
         response = self.api_get(path)
         self.assertEqual(expected_code, response.status_code)
         if response.status_code == 200:
@@ -133,6 +141,58 @@ class TestImageCache(functional.SynchronousAPIBase):
         output = self.list_cache()
         self.assertEqual(1, len(output['queued_images']))
         self.assertEqual(0, len(output['cached_images']))
+
+    def test_list_cached_nodes_centralized_cache_disabled(self):
+        self.start_server(enable_cache=True)
+        images = self.load_data()
+
+        # Test that 409 is returned when centralized caching is disabled
+        # This check is based on driver configuration, not cache state
+        self.list_cached_nodes(images['public'],
+                               expected_code=409)
+
+    def test_list_cached_nodes_centralized_cache_enabled(self):
+        self.start_server(enable_cache=True, cache_driver='centralized_db')
+        images = self.load_data()
+
+        # Test that empty list is returned for uncached image
+        output = self.list_cached_nodes(images['public'])
+        self.assertEqual(0, len(output))
+
+        # Queue 1 image for caching
+        self.cache_queue(images['public'])
+        self.wait_for_caching(images['public'])
+
+        # Test that we get the expected node URL
+        output = self.list_cached_nodes(images['public'])
+        self.assertEqual(1, len(output))
+        # Should return the worker URL we configured
+        self.assertIn('http://workerx', output[0])
+
+        # Test that a different image still returns empty
+        output = self.list_cached_nodes(images['private'])
+        self.assertEqual(0, len(output))
+
+    def test_list_cached_nodes_nonexistent_image(self):
+        """Test 404 for non-existent image."""
+        self.start_server(enable_cache=True, cache_driver='centralized_db')
+
+        # Use a random UUID that doesn't exist
+        fake_image_id = str(uuid.uuid4())
+
+        # Should return 404 for non-existent image
+        self.list_cached_nodes(fake_image_id, expected_code=404)
+
+    def test_list_cached_nodes_invalid_uuid(self):
+        """Test that requesting cached nodes with invalid UUID returns 404."""
+        self.start_server(enable_cache=True, cache_driver='centralized_db')
+
+        # Use an invalid UUID format
+        invalid_image_id = "not-a-valid-uuid"
+
+        # Should return 404 for invalid UUID format
+        # (treated as non-existent image)
+        self.list_cached_nodes(invalid_image_id, expected_code=404)
 
     def test_cache_queue(self):
         self.start_server(enable_cache=True)

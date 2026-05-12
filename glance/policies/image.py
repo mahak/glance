@@ -329,6 +329,16 @@ image_policies = [
              'method': 'POST'}
         ]
     ),
+    policy.DocumentedRuleDefault(
+        name="list_cached_nodes",
+        check_str=base.ADMIN,
+        scope_types=['project'],
+        description='Get all nodes where specified image is cached',
+        operations=[
+            {'path': '/v2/cache/nodes/{image_id}',
+             'method': 'GET'}
+        ],
+    )
 ]
 
 

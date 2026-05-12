@@ -645,5 +645,14 @@ class API(wsgi.Router):
                        controller=reject_method_resource,
                        action='reject',
                        allowed_methods='DELETE, PUT')
+        mapper.connect('/cache/nodes/{image_id}',
+                       controller=cache_manage_resource,
+                       action='get_cached_nodes',
+                       conditions={'method': ['GET']},
+                       body_reject=True)
+        mapper.connect('/cache/nodes/{image_id}',
+                       controller=reject_method_resource,
+                       action='reject',
+                       allowed_methods='GET')
 
         super(API, self).__init__(mapper)
