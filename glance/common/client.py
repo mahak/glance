@@ -23,14 +23,9 @@ import functools
 import http.client
 import os
 import re
+import socket
+import ssl
 import urllib.parse as urlparse
-
-try:
-    from eventlet.green import socket
-    from eventlet.green import ssl
-except ImportError:
-    import socket
-    import ssl
 
 import osprofiler.web
 
