@@ -2,7 +2,6 @@
 *.log
 .glance-venv
 .stestr/*
-.testrepository/
 .tox
 .coverage*
 .venv
